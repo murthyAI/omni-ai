@@ -1,3 +1,6 @@
+"use client";
+
+import Link from "next/link";
 export default function Home() {
   return (
     <main className="min-h-screen bg-black text-white flex items-center justify-center px-6">
@@ -15,13 +18,19 @@ export default function Home() {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <button className="rounded-full bg-white px-6 py-3 font-semibold text-black hover:bg-zinc-200">
-            Start Building
-          </button>
+          <Link
+  href="/login"
+  className="rounded-full bg-white px-6 py-3 font-semibold text-black hover:bg-zinc-200"
+>
+  Start Building
+</Link>
 
-          <button className="rounded-full border border-zinc-700 px-6 py-3 font-semibold text-white hover:bg-zinc-900">
-            View Roadmap
-          </button>
+<Link
+  href="/dashboard"
+  className="rounded-full border border-zinc-700 px-6 py-3 font-semibold text-white hover:bg-zinc-900"
+>
+  View Roadmap
+</Link>
         </div>
 
         <p className="mt-10 text-sm text-zinc-500">
