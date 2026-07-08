@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+
 export default function Home() {
   return (
     <main className="min-h-screen bg-black text-white flex items-center justify-center px-6">
+      
       <section className="max-w-4xl text-center">
         <p className="mb-4 text-sm font-semibold tracking-[0.3em] text-cyan-400">
           OMNI AI • VERSION 1
