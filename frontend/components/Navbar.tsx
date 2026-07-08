@@ -21,6 +21,9 @@ export default function Navbar() {
           <Link href="/code" className="hover:text-cyan-400">
             Code
           </Link>
+          <Link href="/settings" className="hover:text-cyan-400">
+  Settings
+</Link>
           <Link
             href="/login"
             className="rounded-full bg-white px-4 py-2 font-semibold text-black hover:bg-zinc-200"

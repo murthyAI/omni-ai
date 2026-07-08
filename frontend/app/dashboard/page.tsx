@@ -41,6 +41,15 @@ export default function DashboardPage() {
     Generate code with AI.
   </p>
 </Link>
+<Link
+  href="/settings"
+  className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6 hover:border-cyan-400 hover:bg-zinc-900"
+>
+  <h2 className="text-xl font-bold">⚙️ Settings</h2>
+  <p className="mt-2 text-zinc-400">
+    Manage profile, language, theme and plan usage.
+  </p>
+</Link>
         </div>
       </div>
     </main>
