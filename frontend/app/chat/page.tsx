@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type ChatMessage = {
   role: "user" | "ai";
@@ -10,6 +10,7 @@ type ChatMessage = {
 export default function ChatPage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showAddMenu, setShowAddMenu] = useState(false);
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -17,6 +18,19 @@ export default function ChatPage() {
       text: "Hello! Welcome to OMNI AI. How can I help you today?",
     },
   ]);
+
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+  if (loading) {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }
+}, [loading]);
+
+  async function copyText(text: string) {
+    await navigator.clipboard.writeText(text);
+    alert("Copied ✅");
+  }
 
   async function sendMessage() {
     if (!message.trim() || loading) return;
@@ -70,18 +84,17 @@ export default function ChatPage() {
                       : "bg-zinc-900 text-white"
                   }`}
                 >
-                  <p
-                    className={`font-semibold ${
-                      item.role === "user" ? "text-cyan-100" : "text-cyan-400"
-                    }`}
-                  >
+                  <p className="font-semibold text-cyan-300">
                     {item.role === "user" ? "You" : "🤖 OMNI AI"}
                   </p>
 
                   <p className="mt-2 whitespace-pre-wrap">{item.text}</p>
 
                   <div className="mt-3 flex gap-3 text-lg opacity-80">
-                    <button title="Copy">📋</button>
+                    <button title="Copy" onClick={() => copyText(item.text)}>
+                      📋
+                    </button>
+
                     {item.role === "ai" && (
                       <>
                         <button title="Like">👍</button>
@@ -89,6 +102,7 @@ export default function ChatPage() {
                         <button title="Regenerate">🔄</button>
                       </>
                     )}
+
                     {item.role === "user" && <button title="Share">🔗</button>}
                   </div>
                 </div>
@@ -102,12 +116,38 @@ export default function ChatPage() {
                 </div>
               </div>
             )}
+
+            <div ref={bottomRef} />
           </div>
 
-          <div className="mt-5 flex gap-2">
-            <button className="rounded-xl border border-zinc-700 px-4 py-3">
+          <div className="relative mt-5 flex gap-2">
+            <button
+              onClick={() => setShowAddMenu(!showAddMenu)}
+              className="rounded-xl border border-zinc-700 px-4 py-3"
+              title="Add"
+            >
               +
             </button>
+
+            {showAddMenu && (
+              <div className="absolute bottom-16 left-0 w-64 rounded-2xl border border-zinc-800 bg-zinc-950 p-3 shadow-2xl">
+                <button className="w-full rounded-xl px-4 py-3 text-left hover:bg-zinc-900">
+                  📷 Camera
+                </button>
+                <button className="w-full rounded-xl px-4 py-3 text-left hover:bg-zinc-900">
+                  🖼️ Photos / Gallery
+                </button>
+                <button className="w-full rounded-xl px-4 py-3 text-left hover:bg-zinc-900">
+                  📎 Files / PDF
+                </button>
+                <button className="w-full rounded-xl px-4 py-3 text-left hover:bg-zinc-900">
+                  🎨 Create Image
+                </button>
+                <button className="w-full rounded-xl px-4 py-3 text-left hover:bg-zinc-900">
+                  🔎 Deep Research
+                </button>
+              </div>
+            )}
 
             <input
               value={message}
