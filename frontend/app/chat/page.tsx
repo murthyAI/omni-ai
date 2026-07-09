@@ -1,16 +1,29 @@
 "use client";
 
+import AddMenu from "@/components/AddMenu";
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type ChatMessage = {
   role: "user" | "ai";
   text: string;
+  fileName?: string;
+  filePreview?: string;
 };
 
 export default function ChatPage() {
+  const router = useRouter();
+
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedPreview, setSelectedPreview] = useState("");
+
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const galleryInputRef = useRef<HTMLInputElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -19,25 +32,47 @@ export default function ChatPage() {
     },
   ]);
 
-  const bottomRef = useRef<HTMLDivElement | null>(null);
-
   useEffect(() => {
-  if (loading) {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }
-}, [loading]);
+    if (loading) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [loading]);
 
   async function copyText(text: string) {
     await navigator.clipboard.writeText(text);
     alert("Copied ✅");
   }
 
+  function handleFileSelect(file?: File) {
+    if (!file) return;
+
+    setSelectedFile(file);
+
+    if (file.type.startsWith("image/")) {
+      const url = URL.createObjectURL(file);
+      setSelectedPreview(url);
+    } else {
+      setSelectedPreview("");
+    }
+
+    setShowAddMenu(false);
+  }
+
   async function sendMessage() {
-    if (!message.trim() || loading) return;
+    if ((!message.trim() && !selectedFile) || loading) return;
 
-    const userMessage = message;
+    const userMessage = message || "Please analyze this uploaded file.";
 
-    setMessages((prev) => [...prev, { role: "user", text: userMessage }]);
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "user",
+        text: userMessage,
+        fileName: selectedFile?.name,
+        filePreview: selectedPreview,
+      },
+    ]);
+
     setMessage("");
     setLoading(true);
 
@@ -56,6 +91,8 @@ export default function ChatPage() {
       { role: "ai", text: data.reply || "No response received." },
     ]);
 
+    setSelectedFile(null);
+    setSelectedPreview("");
     setLoading(false);
   }
 
@@ -73,27 +110,35 @@ export default function ChatPage() {
             {messages.map((item, index) => (
               <div
                 key={index}
-                className={`flex ${
-                  item.role === "user" ? "justify-end" : "justify-start"
-                }`}
+                className={`flex ${item.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
                   className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                    item.role === "user"
-                      ? "bg-cyan-600 text-white"
-                      : "bg-zinc-900 text-white"
+                    item.role === "user" ? "bg-cyan-600 text-white" : "bg-zinc-900 text-white"
                   }`}
                 >
                   <p className="font-semibold text-cyan-300">
                     {item.role === "user" ? "You" : "🤖 OMNI AI"}
                   </p>
 
+                  {item.filePreview && (
+                    <img
+                      src={item.filePreview}
+                      alt="Uploaded preview"
+                      className="mt-3 max-h-56 rounded-xl border border-zinc-700"
+                    />
+                  )}
+
+                  {item.fileName && (
+                    <p className="mt-2 rounded-lg bg-black/30 px-3 py-2 text-sm">
+                      📎 {item.fileName}
+                    </p>
+                  )}
+
                   <p className="mt-2 whitespace-pre-wrap">{item.text}</p>
 
                   <div className="mt-3 flex gap-3 text-lg opacity-80">
-                    <button title="Copy" onClick={() => copyText(item.text)}>
-                      📋
-                    </button>
+                    <button title="Copy" onClick={() => copyText(item.text)}>📋</button>
 
                     {item.role === "ai" && (
                       <>
@@ -120,6 +165,20 @@ export default function ChatPage() {
             <div ref={bottomRef} />
           </div>
 
+          {selectedFile && (
+            <div className="mt-4 rounded-xl border border-zinc-800 bg-black p-3">
+              <p className="text-sm text-zinc-300">Selected: {selectedFile.name}</p>
+
+              {selectedPreview && (
+                <img
+                  src={selectedPreview}
+                  alt="Selected preview"
+                  className="mt-3 max-h-40 rounded-xl border border-zinc-700"
+                />
+              )}
+            </div>
+          )}
+
           <div className="relative mt-5 flex gap-2">
             <button
               onClick={() => setShowAddMenu(!showAddMenu)}
@@ -129,25 +188,39 @@ export default function ChatPage() {
               +
             </button>
 
-            {showAddMenu && (
-              <div className="absolute bottom-16 left-0 w-64 rounded-2xl border border-zinc-800 bg-zinc-950 p-3 shadow-2xl">
-                <button className="w-full rounded-xl px-4 py-3 text-left hover:bg-zinc-900">
-                  📷 Camera
-                </button>
-                <button className="w-full rounded-xl px-4 py-3 text-left hover:bg-zinc-900">
-                  🖼️ Photos / Gallery
-                </button>
-                <button className="w-full rounded-xl px-4 py-3 text-left hover:bg-zinc-900">
-                  📎 Files / PDF
-                </button>
-                <button className="w-full rounded-xl px-4 py-3 text-left hover:bg-zinc-900">
-                  🎨 Create Image
-                </button>
-                <button className="w-full rounded-xl px-4 py-3 text-left hover:bg-zinc-900">
-                  🔎 Deep Research
-                </button>
-              </div>
-            )}
+            <AddMenu
+              isOpen={showAddMenu}
+              onCamera={() => cameraInputRef.current?.click()}
+              onGallery={() => galleryInputRef.current?.click()}
+              onFiles={() => fileInputRef.current?.click()}
+              onCreateImage={() => router.push("/image")}
+              onDeepResearch={() => alert("Deep Research will be available soon.")}
+            />
+
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => handleFileSelect(e.target.files?.[0])}
+            />
+
+            <input
+              ref={galleryInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => handleFileSelect(e.target.files?.[0])}
+            />
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.doc,.docx,.txt,.csv,.zip,.js,.ts,.tsx,.jsx,.dart,.py,.java,.html,.css"
+              className="hidden"
+              onChange={(e) => handleFileSelect(e.target.files?.[0])}
+            />
 
             <input
               value={message}
