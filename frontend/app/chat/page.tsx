@@ -17,6 +17,7 @@ export default function ChatPage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState(false);
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedPreview, setSelectedPreview] = useState("");
 
@@ -43,6 +44,20 @@ export default function ChatPage() {
     alert("Copied ✅");
   }
 
+  function fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        const result = reader.result as string;
+        resolve(result.split(",")[1]);
+      };
+
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
   function handleFileSelect(file?: File) {
     if (!file) return;
 
@@ -61,7 +76,8 @@ export default function ChatPage() {
   async function sendMessage() {
     if ((!message.trim() && !selectedFile) || loading) return;
 
-    const userMessage = message || "Please analyze this uploaded file.";
+    const userMessage =
+      message || "Please analyze this uploaded image clearly.";
 
     setMessages((prev) => [
       ...prev,
@@ -76,19 +92,36 @@ export default function ChatPage() {
     setMessage("");
     setLoading(true);
 
+    let imagePayload = null;
+
+    if (selectedFile && selectedFile.type.startsWith("image/")) {
+      const base64Data = await fileToBase64(selectedFile);
+
+      imagePayload = {
+        mimeType: selectedFile.type,
+        data: base64Data,
+      };
+    }
+
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ message: userMessage }),
+      body: JSON.stringify({
+        message: userMessage,
+        image: imagePayload,
+      }),
     });
 
     const data = await res.json();
 
     setMessages((prev) => [
       ...prev,
-      { role: "ai", text: data.reply || "No response received." },
+      {
+        role: "ai",
+        text: data.reply || "No response received.",
+      },
     ]);
 
     setSelectedFile(null);
@@ -110,11 +143,15 @@ export default function ChatPage() {
             {messages.map((item, index) => (
               <div
                 key={index}
-                className={`flex ${item.role === "user" ? "justify-end" : "justify-start"}`}
+                className={`flex ${
+                  item.role === "user" ? "justify-end" : "justify-start"
+                }`}
               >
                 <div
                   className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                    item.role === "user" ? "bg-cyan-600 text-white" : "bg-zinc-900 text-white"
+                    item.role === "user"
+                      ? "bg-cyan-600 text-white"
+                      : "bg-zinc-900 text-white"
                   }`}
                 >
                   <p className="font-semibold text-cyan-300">
@@ -138,7 +175,9 @@ export default function ChatPage() {
                   <p className="mt-2 whitespace-pre-wrap">{item.text}</p>
 
                   <div className="mt-3 flex gap-3 text-lg opacity-80">
-                    <button title="Copy" onClick={() => copyText(item.text)}>📋</button>
+                    <button title="Copy" onClick={() => copyText(item.text)}>
+                      📋
+                    </button>
 
                     {item.role === "ai" && (
                       <>
@@ -157,7 +196,7 @@ export default function ChatPage() {
             {loading && (
               <div className="flex justify-start">
                 <div className="rounded-2xl bg-zinc-900 px-4 py-3 text-zinc-400">
-                  🤖 OMNI AI is thinking...
+                  🤖 OMNI AI is analyzing...
                 </div>
               </div>
             )}
@@ -167,7 +206,9 @@ export default function ChatPage() {
 
           {selectedFile && (
             <div className="mt-4 rounded-xl border border-zinc-800 bg-black p-3">
-              <p className="text-sm text-zinc-300">Selected: {selectedFile.name}</p>
+              <p className="text-sm text-zinc-300">
+                Selected: {selectedFile.name}
+              </p>
 
               {selectedPreview && (
                 <img
@@ -194,7 +235,9 @@ export default function ChatPage() {
               onGallery={() => galleryInputRef.current?.click()}
               onFiles={() => fileInputRef.current?.click()}
               onCreateImage={() => router.push("/image")}
-              onDeepResearch={() => alert("Deep Research will be available soon.")}
+              onDeepResearch={() =>
+                alert("Deep Research will be available soon.")
+              }
             />
 
             <input
