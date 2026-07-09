@@ -15,7 +15,7 @@ export default function ImagePage() {
             </label>
 
             <textarea
-              placeholder="Example: A futuristic AI robot helping students in a digital classroom..."
+              placeholder="Example: A futuristic AI robot helping students..."
               className="mt-3 min-h-[280px] w-full rounded-xl border border-zinc-800 bg-black p-4 text-white outline-none focus:border-cyan-400"
             />
 
@@ -25,9 +25,16 @@ export default function ImagePage() {
           </section>
 
           <section className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
-            <p className="mb-3 text-sm font-semibold text-zinc-300">
-              Preview
-            </p>
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm font-semibold text-zinc-300">Preview</p>
+
+              <div className="flex gap-3 text-lg text-zinc-400">
+                <button title="Copy Image" className="hover:text-cyan-400">📋</button>
+                <button title="Download" className="hover:text-cyan-400">⬇️</button>
+                <button title="Share" className="hover:text-cyan-400">🔗</button>
+                <button title="Save" className="hover:text-cyan-400">❤️</button>
+              </div>
+            </div>
 
             <div className="flex min-h-[330px] items-center justify-center rounded-xl border border-dashed border-zinc-700 bg-black text-center text-zinc-500">
               Your generated image preview will appear here.

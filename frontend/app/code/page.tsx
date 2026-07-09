@@ -25,9 +25,15 @@ export default function CodePage() {
           </section>
 
           <section className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
-            <p className="mb-3 text-sm font-semibold text-zinc-300">
-              Output
-            </p>
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-sm font-semibold text-zinc-300">Output</p>
+
+              <div className="flex gap-3 text-lg text-zinc-400">
+                <button title="Copy Code" className="hover:text-cyan-400">📋</button>
+                <button title="Download Code" className="hover:text-cyan-400">⬇️</button>
+                <button title="Share Code" className="hover:text-cyan-400">🔗</button>
+              </div>
+            </div>
 
             <div className="min-h-[330px] rounded-xl border border-zinc-800 bg-black p-4 font-mono text-sm text-green-400">
               Generated code will appear here...
