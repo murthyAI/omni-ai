@@ -6,46 +6,21 @@ export default function ImagePage() {
   const [prompt, setPrompt] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [loading, setLoading] = useState(false);
+async function generateImage() {
+  alert(
+    "Image Generation is temporarily unavailable because the current API quota is exhausted.\n\nPlease enable Google API billing or configure another image provider to use this feature."
+  );
+}
+async function copyPrompt() {
+  await navigator.clipboard.writeText(prompt);
+  alert("Prompt copied ✅");
+}
 
-  async function generateImage() {
-    if (!prompt.trim() || loading) return;
-
-    setLoading(true);
-    setImageUrl("");
-
-    const res = await fetch("/api/image", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ prompt }),
-    });
-
-    const data = await res.json();
-
-    if (data.image) {
-      setImageUrl(data.image);
-    } else {
-      alert(data.error || "Image generation failed.");
-    }
-
-    setLoading(false);
-  }
-
-  function downloadImage() {
-    if (!imageUrl) return;
-
-    const link = document.createElement("a");
-    link.href = imageUrl;
-    link.download = "omni-ai-image.png";
-    link.click();
-  }
-
-  async function copyPrompt() {
-    await navigator.clipboard.writeText(prompt);
-    alert("Prompt copied ✅");
-  }
-
+function downloadImage() {
+  alert(
+    "Download is available after image generation is enabled with API billing."
+  );
+}
   return (
     <main className="min-h-screen bg-black p-8 text-white">
       <div className="mx-auto max-w-6xl">
