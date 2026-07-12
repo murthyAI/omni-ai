@@ -1,6 +1,9 @@
 "use client";
 
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 type DashboardStat = {
@@ -45,11 +48,38 @@ const tools = [
 ];
 
 export default function DashboardPage() {
+  const router = useRouter();
+
   const [chatCount, setChatCount] = useState(0);
+  const [userName, setUserName] = useState("User");
+  const [userEmail, setUserEmail] = useState("");
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        router.replace("/login");
+        return;
+      }
+
+      const displayName =
+        user.displayName?.trim() ||
+        user.email?.split("@")[0] ||
+        "User";
+
+      setUserName(displayName);
+      setUserEmail(user.email || "");
+      setAuthLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [router]);
 
   useEffect(() => {
     try {
-      const savedChats = localStorage.getItem("omni-ai-conversations");
+      const savedChats = localStorage.getItem(
+        "omni-ai-conversations"
+      );
 
       if (!savedChats) return;
 
@@ -59,7 +89,10 @@ export default function DashboardPage() {
         setChatCount(parsedChats.length);
       }
     } catch (error) {
-      console.error("Unable to load dashboard chat count:", error);
+      console.error(
+        "Unable to load dashboard chat count:",
+        error
+      );
     }
   }, []);
 
@@ -86,6 +119,20 @@ export default function DashboardPage() {
     },
   ];
 
+  if (authLoading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-black text-white">
+        <div className="text-center">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-zinc-700 border-t-cyan-400" />
+
+          <p className="mt-4 text-zinc-400">
+            Loading your OMNI AI dashboard...
+          </p>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-black p-4 text-white sm:p-8">
       <div className="mx-auto max-w-7xl">
@@ -97,12 +144,18 @@ export default function DashboardPage() {
               </p>
 
               <h1 className="mt-3 text-4xl font-bold sm:text-5xl">
-                Welcome back, Murthy
+                Welcome back, {userName}
               </h1>
 
+              {userEmail && (
+                <p className="mt-3 text-sm text-cyan-300">
+                  {userEmail}
+                </p>
+              )}
+
               <p className="mt-4 max-w-2xl text-zinc-400">
-                Access your AI tools, continue saved conversations and manage
-                your OMNI AI preferences from one place.
+                Access your AI tools, continue saved conversations
+                and manage your OMNI AI preferences from one place.
               </p>
             </div>
 
@@ -121,7 +174,9 @@ export default function DashboardPage() {
               key={stat.label}
               className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5"
             >
-              <p className="text-sm text-zinc-400">{stat.label}</p>
+              <p className="text-sm text-zinc-400">
+                {stat.label}
+              </p>
 
               <p className="mt-2 text-3xl font-bold text-cyan-400">
                 {stat.value}
@@ -137,10 +192,13 @@ export default function DashboardPage() {
         <section className="mt-10">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-3xl font-bold">AI Tools</h2>
+              <h2 className="text-3xl font-bold">
+                AI Tools
+              </h2>
 
               <p className="mt-2 text-zinc-400">
-                Select a module and continue building with OMNI AI.
+                Select a module and continue building with
+                OMNI AI.
               </p>
             </div>
 
@@ -193,7 +251,9 @@ export default function DashboardPage() {
 
         <section className="mt-10 grid gap-6 lg:grid-cols-2">
           <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
-            <h2 className="text-2xl font-bold">Version 1 Progress</h2>
+            <h2 className="text-2xl font-bold">
+              Version 1 Progress
+            </h2>
 
             <p className="mt-2 text-zinc-400">
               Core OMNI AI modules currently completed.
@@ -205,12 +265,18 @@ export default function DashboardPage() {
                 ["Chat History", "100%"],
                 ["Code Generator", "100%"],
                 ["Settings", "100%"],
+                ["Authentication", "90%"],
                 ["Image Generator", "70%"],
               ].map(([name, progress]) => (
                 <div key={name}>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-zinc-300">{name}</span>
-                    <span className="text-cyan-400">{progress}</span>
+                    <span className="text-zinc-300">
+                      {name}
+                    </span>
+
+                    <span className="text-cyan-400">
+                      {progress}
+                    </span>
                   </div>
 
                   <div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-800">
@@ -225,7 +291,9 @@ export default function DashboardPage() {
           </div>
 
           <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
-            <h2 className="text-2xl font-bold">Next Milestones</h2>
+            <h2 className="text-2xl font-bold">
+              Next Milestones
+            </h2>
 
             <p className="mt-2 text-zinc-400">
               Features planned before Version 1 launch.
@@ -233,7 +301,7 @@ export default function DashboardPage() {
 
             <div className="mt-6 space-y-3">
               {[
-                "Real authentication and user accounts",
+                "Protected application routes",
                 "Cloud database and chat sync",
                 "Voice input and voice replies",
                 "PDF and document analysis",
@@ -245,7 +313,10 @@ export default function DashboardPage() {
                   className="flex items-start gap-3 rounded-xl border border-zinc-800 bg-black p-4"
                 >
                   <span className="text-cyan-400">○</span>
-                  <p className="text-zinc-300">{milestone}</p>
+
+                  <p className="text-zinc-300">
+                    {milestone}
+                  </p>
                 </div>
               ))}
             </div>

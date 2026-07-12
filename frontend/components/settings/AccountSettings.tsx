@@ -1,33 +1,44 @@
 "use client";
 
+import { auth } from "@/lib/firebase";
+import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function AccountSettings() {
   const router = useRouter();
 
-  function handleLogout() {
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  async function handleLogout() {
     const shouldLogout = window.confirm(
       "Do you want to log out from OMNI AI?"
     );
 
     if (!shouldLogout) return;
 
-    localStorage.removeItem("omni-ai-active-conversation");
+    setLoading(true);
+    setErrorMessage("");
 
-    alert("Logged out successfully.");
+    try {
+      await signOut(auth);
 
-    router.push("/login");
+      router.replace("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+
+      setErrorMessage(
+        "Unable to log out. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
   }
 
   function handleDeleteAccount() {
-    const shouldDelete = window.confirm(
-      "Are you sure you want to delete your account? This action cannot be undone."
-    );
-
-    if (!shouldDelete) return;
-
-    alert(
-      "Account deletion will become available after authentication and database integration."
+    window.alert(
+      "Account deletion will be enabled after cloud database integration."
     );
   }
 
@@ -38,8 +49,14 @@ export default function AccountSettings() {
       </h2>
 
       <p className="mt-2 text-sm text-zinc-400">
-        Manage your login session and account preferences.
+        Manage your OMNI AI account and login session.
       </p>
+
+      {errorMessage && (
+        <div className="mt-5 rounded-xl border border-red-900 bg-red-950/40 px-4 py-3 text-sm text-red-300">
+          {errorMessage}
+        </div>
+      )}
 
       <div className="mt-6 space-y-4">
         <div className="rounded-xl border border-zinc-800 bg-black p-4">
@@ -48,15 +65,16 @@ export default function AccountSettings() {
           </h3>
 
           <p className="mt-1 text-sm text-zinc-400">
-            Sign out from your current OMNI AI session.
+            Sign out securely from your current OMNI AI session.
           </p>
 
           <button
             type="button"
             onClick={handleLogout}
-            className="mt-4 rounded-xl border border-cyan-500 px-5 py-3 font-semibold text-cyan-400 hover:bg-cyan-500 hover:text-black"
+            disabled={loading}
+            className="mt-4 rounded-xl border border-cyan-500 px-5 py-3 font-semibold text-cyan-400 hover:bg-cyan-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Logout
+            {loading ? "Logging out..." : "Logout"}
           </button>
         </div>
 

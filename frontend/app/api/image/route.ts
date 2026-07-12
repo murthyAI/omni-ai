@@ -1,44 +1,132 @@
-import { GoogleGenAI } from "@google/genai";
+const CLOUDFLARE_MODEL =
+  "@cf/black-forest-labs/flux-1-schnell";
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY!,
-});
+type CloudflareImageResponse = {
+  success?: boolean;
+  result?: {
+    image?: string;
+  };
+  errors?: Array<{
+    code?: number;
+    message?: string;
+  }>;
+  messages?: Array<{
+    code?: number;
+    message?: string;
+  }>;
+};
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    const { prompt } = await req.json();
+    const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+    const apiToken = process.env.CLOUDFLARE_API_TOKEN;
+
+    if (!accountId || !apiToken) {
+      return Response.json(
+        {
+          error:
+            "Cloudflare configuration is missing. Check the environment variables.",
+        },
+        { status: 500 }
+      );
+    }
+
+    const body = await request.json();
+    const prompt =
+      typeof body.prompt === "string"
+        ? body.prompt.trim()
+        : "";
 
     if (!prompt) {
       return Response.json(
-        { error: "Prompt is required" },
+        {
+          error: "Please enter an image prompt.",
+        },
         { status: 400 }
       );
     }
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-lite-image",
-      contents: prompt,
+    if (prompt.length > 2048) {
+      return Response.json(
+        {
+          error:
+            "The prompt is too long. Please keep it below 2048 characters.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const endpoint =
+      `https://api.cloudflare.com/client/v4/accounts/` +
+      `${accountId}/ai/run/${CLOUDFLARE_MODEL}`;
+
+    const cloudflareResponse = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        prompt,
+        steps: 4,
+        seed: Math.floor(Math.random() * 2147483647),
+      }),
+      cache: "no-store",
     });
 
-    const parts = response.candidates?.[0]?.content?.parts || [];
+    const data =
+      (await cloudflareResponse.json()) as CloudflareImageResponse;
 
-    const imagePart = parts.find((part: any) => part.inlineData);
+    if (!cloudflareResponse.ok || data.success === false) {
+      console.error("Cloudflare image API error:", data);
 
-    if (!imagePart?.inlineData?.data) {
+      const cloudflareMessage =
+        data.errors?.[0]?.message ||
+        data.messages?.[0]?.message ||
+        "Cloudflare could not generate the image.";
+
       return Response.json(
-        { error: "No image generated. Try another prompt." },
+        {
+          error: cloudflareMessage,
+        },
+        {
+          status: cloudflareResponse.status || 500,
+        }
+      );
+    }
+
+    const base64Image = data.result?.image;
+
+    if (!base64Image) {
+      console.error(
+        "Cloudflare response did not contain image data:",
+        data
+      );
+
+      return Response.json(
+        {
+          error:
+            "The AI completed the request but returned no image.",
+        },
         { status: 500 }
       );
     }
 
     return Response.json({
-      image: `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`,
+      image: `data:image/jpeg;base64,${base64Image}`,
+      model: CLOUDFLARE_MODEL,
     });
-  } catch (error: any) {
-  console.error(error);
+  } catch (error) {
+    console.error("Image generation route error:", error);
 
-  return Response.json({
-    error: error.message,
-  });
-}
+    return Response.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Image generation failed. Please try again.",
+      },
+      { status: 500 }
+    );
+  }
 }
