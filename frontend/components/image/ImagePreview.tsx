@@ -25,7 +25,7 @@ export default function ImagePreview({
 
   if (!imageUrl) {
     return (
-      <section className="flex min-h-[500px] items-center justify-center rounded-2xl border border-dashed border-zinc-700 bg-zinc-950 p-6">
+      <section className="flex min-h-[500px] items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
         <div className="text-center">
           <div className="text-7xl">🎨</div>
 
@@ -34,9 +34,8 @@ export default function ImagePreview({
           </h2>
 
           <p className="mt-3 text-zinc-400">
-            Enter a prompt and click
+            Enter a prompt and click{" "}
             <span className="font-semibold text-cyan-400">
-              {" "}
               Generate Image
             </span>
             .
@@ -52,11 +51,12 @@ export default function ImagePreview({
         Generated Image
       </h2>
 
-      <div className="mt-5 overflow-hidden rounded-2xl border border-zinc-800 bg-black">
+      <div className="mt-5 overflow-hidden rounded-2xl border border-zinc-800">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={imageUrl}
           alt="Generated AI artwork"
-          className="w-full object-cover"
+          className="h-auto w-full object-cover"
         />
       </div>
     </section>

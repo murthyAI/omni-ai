@@ -2,91 +2,143 @@
 
 import { useState } from "react";
 
-export default function ImagePage() {
+import ImagePrompt from "@/components/image/ImagePrompt";
+import LoadingAnimation from "@/components/image/LoadingAnimation";
+import ImagePreview from "@/components/image/ImagePreview";
+import ImageToolbar from "@/components/image/ImageToolbar";
+import ImageHistory from "@/components/image/ImageHistory";
+
+export default function ImageGeneratorPage() {
   const [prompt, setPrompt] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
-  const [loading, setLoading] = useState(false);
-async function generateImage() {
-  alert(
-    "Image Generation is temporarily unavailable because the current API quota is exhausted.\n\nPlease enable Google API billing or configure another image provider to use this feature."
-  );
-}
-async function copyPrompt() {
-  await navigator.clipboard.writeText(prompt);
-  alert("Prompt copied ✅");
-}
+  const [generatedImage, setGeneratedImage] = useState("");
+  const [imageHistory, setImageHistory] = useState<string[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState("");
 
-function downloadImage() {
-  alert(
-    "Download is available after image generation is enabled with API billing."
-  );
-}
+  const handleGenerateImage = async () => {
+    const cleanedPrompt = prompt.trim();
+
+    if (!cleanedPrompt) {
+      setError("Please enter an image description.");
+      setGeneratedImage("");
+      return;
+    }
+
+    try {
+      setIsGenerating(true);
+      setError("");
+
+      const response = await fetch("/api/image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt: cleanedPrompt,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error ||
+            data?.message ||
+            "Image generation failed. Please try again."
+        );
+      }
+
+      const imageUrl =
+        data?.imageUrl ||
+        data?.url ||
+        data?.image ||
+        data?.result?.imageUrl ||
+        data?.result?.url;
+
+      if (!imageUrl || typeof imageUrl !== "string") {
+        throw new Error("The server did not return a generated image.");
+      }
+
+      setGeneratedImage(imageUrl);
+
+      setImageHistory((previousHistory) => {
+        const updatedHistory = [
+          imageUrl,
+          ...previousHistory.filter((image) => image !== imageUrl),
+        ];
+
+        return updatedHistory.slice(0, 6);
+      });
+    } catch (caughtError) {
+      const errorMessage =
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Something went wrong while generating the image.";
+
+      setError(errorMessage);
+      setGeneratedImage("");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleSelectHistoryImage = (image: string) => {
+    setGeneratedImage(image);
+    setError("");
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
+
   return (
-    <main className="min-h-screen bg-black p-8 text-white">
+    <main className="min-h-screen bg-gray-50 px-4 py-8 dark:bg-gray-950 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl">
-        <h1 className="text-4xl font-bold text-cyan-400">Image Generator</h1>
+        <section className="mb-8 text-center">
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
+            AI Image Generator
+          </h1>
 
-        <p className="mt-2 text-zinc-400">
-          Create AI images from your imagination.
-        </p>
+          <p className="mx-auto mt-3 max-w-2xl text-sm text-gray-600 dark:text-gray-400 sm:text-base">
+            Describe the image you want to create and let OMNI AI generate it
+            for you.
+          </p>
+        </section>
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-2">
-          <section className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
-            <label className="text-sm font-semibold text-zinc-300">
-              Image Prompt
-            </label>
+        <div className="grid gap-7 lg:grid-cols-2">
+          <ImagePrompt
+            prompt={prompt}
+            loading={isGenerating}
+            onPromptChange={setPrompt}
+            onGenerate={handleGenerateImage}
+          />
 
-            <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Example: A futuristic AI robot helping students in a digital classroom..."
-              className="mt-3 min-h-[280px] w-full rounded-xl border border-zinc-800 bg-black p-4 text-white outline-none focus:border-cyan-400"
-            />
+          <div>
+            {isGenerating ? (
+              <LoadingAnimation />
+            ) : (
+              <ImagePreview
+                imageUrl={generatedImage}
+                error={error}
+              />
+            )}
+          </div>
+        </div>
 
-            <button
-              onClick={generateImage}
-              className="mt-4 w-full rounded-xl bg-white py-3 font-semibold text-black hover:bg-zinc-200"
-            >
-              {loading ? "Generating..." : "Generate Image"}
-            </button>
-          </section>
+        <div className="mt-7">
+          <ImageToolbar
+            imageUrl={generatedImage}
+            loading={isGenerating}
+            onRegenerate={handleGenerateImage}
+          />
+        </div>
 
-          <section className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
-            <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-semibold text-zinc-300">Preview</p>
-
-              <div className="flex gap-3 text-lg text-zinc-400">
-                <button title="Copy Prompt" onClick={copyPrompt} className="hover:text-cyan-400">
-                  📋
-                </button>
-                <button title="Download" onClick={downloadImage} className="hover:text-cyan-400">
-                  ⬇️
-                </button>
-                <button title="Share" className="hover:text-cyan-400">
-                  🔗
-                </button>
-                <button title="Save" className="hover:text-cyan-400">
-                  ❤️
-                </button>
-              </div>
-            </div>
-
-            <div className="flex min-h-[330px] items-center justify-center rounded-xl border border-dashed border-zinc-700 bg-black text-center text-zinc-500">
-              {loading && <p>Generating image...</p>}
-
-              {!loading && imageUrl && (
-                <img
-                  src={imageUrl}
-                  alt="Generated image"
-                  className="max-h-[330px] rounded-xl"
-                />
-              )}
-
-              {!loading && !imageUrl && (
-                <p>Your generated image preview will appear here.</p>
-              )}
-            </div>
-          </section>
+        <div className="mt-7">
+          <ImageHistory
+            history={imageHistory}
+            onSelect={handleSelectHistoryImage}
+          />
         </div>
       </div>
     </main>
