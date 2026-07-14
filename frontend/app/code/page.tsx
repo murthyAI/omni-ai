@@ -1,102 +1,227 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+import CodePrompt from "@/components/code/CodePrompt";
+import CodeOutput from "@/components/code/CodeOutput";
+import CodeToolbar from "@/components/code/CodeToolbar";
+import CodeHistory, {
+  CodeHistoryItem,
+} from "@/components/code/CodeHistory";
+import LoadingAnimation from "@/components/code/LoadingAnimation";
+
+const CODE_HISTORY_KEY = "omni-ai-code-history";
 
 export default function CodePage() {
   const [prompt, setPrompt] = useState("");
+  const [selectedLanguage, setSelectedLanguage] = useState("auto");
   const [codeOutput, setCodeOutput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [history, setHistory] = useState<CodeHistoryItem[]>([]);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
+
+  useEffect(() => {
+    try {
+      const savedHistory = localStorage.getItem(CODE_HISTORY_KEY);
+
+      if (savedHistory) {
+        const parsedHistory = JSON.parse(
+          savedHistory
+        ) as CodeHistoryItem[];
+
+        if (Array.isArray(parsedHistory)) {
+          setHistory(parsedHistory);
+        }
+      }
+    } catch (error) {
+      console.error("Unable to load code history:", error);
+    } finally {
+      setHistoryLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!historyLoaded) return;
+
+    try {
+      localStorage.setItem(
+        CODE_HISTORY_KEY,
+        JSON.stringify(history)
+      );
+    } catch (error) {
+      console.error("Unable to save code history:", error);
+    }
+  }, [history, historyLoaded]);
 
   async function generateCode() {
-    if (!prompt.trim() || loading) return;
+    const cleanedPrompt = prompt.trim();
+
+    if (!cleanedPrompt || loading) return;
 
     setLoading(true);
-    setCodeOutput("Generating code...");
+    setCodeOutput("");
 
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        message: `You are OMNI AI Code Assistant. Generate clean, working code for this request. Explain briefly if needed.\n\nRequest: ${prompt}`,
-      }),
+    try {
+      const languageInstruction =
+        selectedLanguage === "auto"
+          ? "Detect the most suitable programming language automatically."
+          : `Use ${selectedLanguage} as the primary programming language.`;
+
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: [
+            "You are OMNI AI Code Assistant.",
+            "Generate clean, working, production-ready code.",
+            languageInstruction,
+            "Use markdown code blocks with the correct language tag.",
+            "Explain briefly only when useful.",
+            "",
+            `Request: ${cleanedPrompt}`,
+          ].join("\n"),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.reply ||
+            data?.error ||
+            "Unable to generate code."
+        );
+      }
+
+      const generatedOutput =
+        data?.reply || "No code was generated.";
+
+      setCodeOutput(generatedOutput);
+      setPrompt("");
+
+      const historyItem: CodeHistoryItem = {
+        id:
+          typeof crypto !== "undefined" &&
+          crypto.randomUUID
+            ? crypto.randomUUID()
+            : String(Date.now()),
+        prompt: cleanedPrompt,
+        output: generatedOutput,
+        language: selectedLanguage,
+        createdAt: Date.now(),
+      };
+
+      setHistory((previousHistory) => [
+        historyItem,
+        ...previousHistory,
+      ].slice(0, 12));
+    } catch (error) {
+      console.error("Code generation error:", error);
+
+      setCodeOutput(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function clearOutput() {
+    setCodeOutput("");
+  }
+
+  function selectHistoryItem(item: CodeHistoryItem) {
+    if (loading) return;
+
+    setPrompt(item.prompt);
+    setSelectedLanguage(item.language);
+    setCodeOutput(item.output);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
     });
-
-    const data = await res.json();
-
-    setCodeOutput(data.reply || "No code generated.");
-    setLoading(false);
   }
 
-  async function copyCode() {
-    await navigator.clipboard.writeText(codeOutput);
-    alert("Code copied ✅");
+  function deleteHistoryItem(itemId: string) {
+    if (loading) return;
+
+    setHistory((previousHistory) =>
+      previousHistory.filter(
+        (item) => item.id !== itemId
+      )
+    );
   }
 
-  function downloadCode() {
-    const blob = new Blob([codeOutput], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
+  function clearHistory() {
+    if (loading) return;
 
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "omni-ai-code.txt";
-    link.click();
+    const shouldClear = window.confirm(
+      "Do you want to clear all code history?"
+    );
 
-    URL.revokeObjectURL(url);
+    if (!shouldClear) return;
+
+    setHistory([]);
   }
 
   return (
-    <main className="min-h-screen bg-black p-8 text-white">
-      <div className="mx-auto max-w-6xl">
-        <h1 className="text-4xl font-bold text-cyan-400">Code Generator</h1>
+    <main className="min-h-screen bg-black px-4 py-8 text-white sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+        <section className="mb-8">
+          <h1 className="text-4xl font-bold text-cyan-400">
+            AI Code Generator
+          </h1>
 
-        <p className="mt-2 text-zinc-400">
-          Generate, explain and debug code with OMNI AI.
-        </p>
+          <p className="mt-2 max-w-2xl text-zinc-400">
+            Generate, explain, improve and debug code with OMNI AI.
+          </p>
+        </section>
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-2">
-          <section className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
-            <label className="text-sm font-semibold text-zinc-300">
-              Code Request
-            </label>
+        <div className="grid gap-7 lg:grid-cols-2">
+          <CodePrompt
+            prompt={prompt}
+            selectedLanguage={selectedLanguage}
+            loading={loading}
+            onPromptChange={setPrompt}
+            onLanguageChange={setSelectedLanguage}
+            onGenerate={generateCode}
+          />
 
-            <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Example: Create a responsive login page using React and Tailwind CSS..."
-              className="mt-3 min-h-[280px] w-full rounded-xl border border-zinc-800 bg-black p-4 text-white outline-none focus:border-cyan-400"
-            />
+          <div>
+            {loading ? (
+              <LoadingAnimation />
+            ) : (
+              <CodeOutput
+                output={codeOutput}
+                selectedLanguage={selectedLanguage}
+              />
+            )}
+          </div>
+        </div>
 
-            <button
-              onClick={generateCode}
-              className="mt-4 w-full rounded-xl bg-white py-3 font-semibold text-black hover:bg-zinc-200"
-            >
-              {loading ? "Generating..." : "Generate Code"}
-            </button>
-          </section>
+        <div className="mt-7">
+          <CodeToolbar
+            output={codeOutput}
+            selectedLanguage={selectedLanguage}
+            loading={loading}
+            onRegenerate={generateCode}
+            onClear={clearOutput}
+          />
+        </div>
 
-          <section className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
-            <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-semibold text-zinc-300">Output</p>
-
-              <div className="flex gap-3 text-lg text-zinc-400">
-                <button title="Copy Code" onClick={copyCode} className="hover:text-cyan-400">
-                  📋
-                </button>
-                <button title="Download Code" onClick={downloadCode} className="hover:text-cyan-400">
-                  ⬇️
-                </button>
-                <button title="Share Code" className="hover:text-cyan-400">
-                  🔗
-                </button>
-              </div>
-            </div>
-
-            <pre className="min-h-[330px] overflow-auto rounded-xl border border-zinc-800 bg-black p-4 font-mono text-sm text-green-400 whitespace-pre-wrap">
-              {codeOutput || "Generated code will appear here..."}
-            </pre>
-          </section>
+        <div className="mt-7">
+          <CodeHistory
+            history={history}
+            loading={loading}
+            onSelect={selectHistoryItem}
+            onDelete={deleteHistoryItem}
+            onClearHistory={clearHistory}
+          />
         </div>
       </div>
     </main>
