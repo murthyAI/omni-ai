@@ -110,7 +110,7 @@ export default function DashboardPage() {
 
         <footer className="border-t border-zinc-900 py-6 text-center">
           <p className="text-sm text-zinc-600">
-            OMNI AI Version 1 · Your complete AI workspace
+              © 2026 OMNI AI • All Rights Reserved
           </p>
         </footer>
       </div>
