@@ -22,9 +22,9 @@ export default function StatsGrid({
       icon: "💬",
     },
     {
-      label: "Daily Free Limit",
-      value: "20",
-      description: "Messages available every day",
+      label: "AI Usage",
+  value: "Limited",
+  description: "Upgrade for higher usage",
       icon: "⚡",
     },
     {
@@ -36,7 +36,7 @@ export default function StatsGrid({
     {
       label: "Current Plan",
       value: "Free",
-      description: "Upgrade options coming soon",
+      description: "Upgrade anytime for more AI power",
       icon: "👤",
     },
   ];
