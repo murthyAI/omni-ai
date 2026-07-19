@@ -3,15 +3,59 @@
 import Footer from "@/components/Footer";
 import { FormEvent, useState } from "react";
 
-type FormStatus = "idle" | "success";
+type FormStatus = "idle" | "loading" | "success" | "error";
 
 export default function ContactPage() {
   const [status, setStatus] = useState<FormStatus>("idle");
+  const [errorMessage, setErrorMessage] = useState("");
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setStatus("success");
-    event.currentTarget.reset();
+
+    setStatus("loading");
+    setErrorMessage("");
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+
+    const payload = {
+      name: String(formData.get("name") ?? "").trim(),
+      email: String(formData.get("email") ?? "").trim(),
+      category: String(formData.get("category") ?? "").trim(),
+      subject: String(formData.get("subject") ?? "").trim(),
+      message: String(formData.get("message") ?? "").trim(),
+    };
+
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result.error || "Unable to send your message. Please try again."
+        );
+      }
+
+      setStatus("success");
+      form.reset();
+    } catch (error) {
+      console.error("Contact form error:", error);
+
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Unable to send your message. Please try again."
+      );
+
+      setStatus("error");
+    }
   }
 
   return (
@@ -108,12 +152,18 @@ export default function ContactPage() {
 
             {status === "success" && (
               <div className="mt-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700 dark:border-green-900 dark:bg-green-950/40 dark:text-green-300">
-                Your message has been recorded successfully.
+                Your message was sent successfully.
+              </div>
+            )}
+
+            {status === "error" && (
+              <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+                {errorMessage}
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="mt-8 space-y-6">
-              <div className="grid gap-6 sm:grid-cols-2">
+                              <div className="grid gap-6 sm:grid-cols-2">
                 <div>
                   <label
                     htmlFor="name"
@@ -218,9 +268,12 @@ export default function ContactPage() {
 
               <button
                 type="submit"
-                className="w-full rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/30"
+                disabled={status === "loading"}
+                className="w-full rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-500/30 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Send Message
+                {status === "loading"
+                  ? "Sending..."
+                  : "Send Message"}
               </button>
 
               <p className="text-center text-xs leading-5 text-gray-500 dark:text-gray-400">
@@ -235,6 +288,7 @@ export default function ContactPage() {
           © 2026 OMNI AI. All rights reserved.
         </div>
       </div>
+
       <Footer />
     </main>
   );
