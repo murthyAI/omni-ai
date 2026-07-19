@@ -15,21 +15,62 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL ??
+      "https://your-vercel-domain.vercel.app"
+  ),
+
   title: {
     default: "OMNI AI",
     template: "%s | OMNI AI",
   },
+
   description:
-    "OMNI AI is an all-in-one AI platform for chat, image generation, code generation, and productivity.",
+    "OMNI AI is an all-in-one AI platform for AI Chat, Image Generation, Code Generation and productivity tools.",
+
   keywords: [
     "OMNI AI",
+    "AI",
+    "Artificial Intelligence",
     "AI Chat",
     "Image Generator",
     "Code Generator",
-    "Artificial Intelligence",
     "Productivity",
+    "Next.js AI",
+    "Generative AI",
+    "Chatbot",
   ],
-  authors: [{ name: "OMNI AI Team" }],
+
+  authors: [
+    {
+      name: "OMNI AI Team",
+    },
+  ],
+
+  creator: "OMNI AI Team",
+  publisher: "OMNI AI",
+
+  robots: {
+    index: true,
+    follow: true,
+  },
+
+  openGraph: {
+    title: "OMNI AI",
+    description:
+      "All-in-One AI Platform for Chat, Images, Code and Productivity.",
+    url: "/",
+    siteName: "OMNI AI",
+    locale: "en_US",
+    type: "website",
+  },
+
+  twitter: {
+    card: "summary_large_image",
+    title: "OMNI AI",
+    description:
+      "All-in-One AI Platform for Chat, Images, Code and Productivity.",
+  },
 };
 
 export default function RootLayout({
