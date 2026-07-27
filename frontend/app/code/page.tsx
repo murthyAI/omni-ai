@@ -22,15 +22,20 @@ type GenerateOptions = {
 
 export default function CodePage() {
   const [prompt, setPrompt] = useState("");
-  const [selectedLanguage, setSelectedLanguage] = useState("auto");
+  const [selectedLanguage, setSelectedLanguage] =
+    useState("auto");
   const [loading, setLoading] = useState(false);
 
   const [conversation, setConversation] = useState<
     CodeConversationItem[]
   >([]);
 
-  const [history, setHistory] = useState<CodeHistoryItem[]>([]);
-  const [storageLoaded, setStorageLoaded] = useState(false);
+  const [history, setHistory] = useState<
+    CodeHistoryItem[]
+  >([]);
+
+  const [storageLoaded, setStorageLoaded] =
+    useState(false);
 
   const latestConversation =
     conversation.length > 0
@@ -39,7 +44,9 @@ export default function CodePage() {
 
   useEffect(() => {
     try {
-      const savedHistory = localStorage.getItem(CODE_HISTORY_KEY);
+      const savedHistory =
+        localStorage.getItem(CODE_HISTORY_KEY);
+
       const savedConversation = localStorage.getItem(
         CODE_CONVERSATION_KEY
       );
@@ -82,7 +89,10 @@ export default function CodePage() {
         JSON.stringify(history)
       );
     } catch (error) {
-      console.error("Unable to save code history:", error);
+      console.error(
+        "Unable to save code history:",
+        error
+      );
     }
   }, [history, storageLoaded]);
 
@@ -122,15 +132,14 @@ export default function CodePage() {
 
     return conversation
       .slice(-4)
-      .map(
-        (item, index) =>
-          [
-            `Previous request ${index + 1}:`,
-            item.prompt,
-            "",
-            `Previous response ${index + 1}:`,
-            item.output,
-          ].join("\n")
+      .map((item, index) =>
+        [
+          `Previous request ${index + 1}:`,
+          item.prompt,
+          "",
+          `Previous response ${index + 1}:`,
+          item.output,
+        ].join("\n")
       )
       .join("\n\n---\n\n");
   }
@@ -158,15 +167,30 @@ export default function CodePage() {
           ? "Detect the most suitable programming language automatically."
           : `Use ${requestedLanguage} as the primary programming language.`;
 
-      const previousContext = buildConversationContext();
+      const previousContext =
+        buildConversationContext();
 
       const requestMessage = [
-        "You are OMNI AI Code Assistant.",
-        "Generate clean, complete, secure and working code.",
+        "You are OMNI AI Code Assistant, an expert software engineer.",
+        "",
+        "Your main task is to generate clean, complete, secure, production-ready and working source code.",
+        "",
+        "STRICT OUTPUT RULES:",
+        "1. Return only the source code requested by the user.",
+        "2. Do not include introductions, summaries, descriptions or conclusions.",
+        '3. Do not write phrases such as "Here is the code", "Below is the code" or similar text.',
+        "4. Do not explain the code unless the user explicitly asks for an explanation.",
+        "5. Do not include setup instructions, usage instructions, advantages or step-by-step guidance unless explicitly requested.",
+        "6. Put every source-code section inside a markdown code block with the correct programming-language tag.",
+        "7. Do not place any normal explanatory text before or after the code block.",
+        "8. Generate complete code instead of shortened examples, placeholders or incomplete snippets.",
+        "9. Do not use comments as a substitute for missing implementation.",
+        "10. If multiple files are required, return each complete file in a separate code block and write only the filename immediately above its code block.",
+        "11. When the user asks to modify previous code, preserve all relevant existing functionality and return the complete updated code.",
+        "12. When the user asks to fix an error, return the corrected complete code.",
+        "13. If the user explicitly requests an explanation, provide only the requested explanation and keep it focused.",
+        "",
         languageInstruction,
-        "Return every code section inside a markdown code block with the correct language tag.",
-        "Keep explanations concise and place them outside code blocks.",
-        "When the user asks to modify earlier code, preserve relevant previous functionality.",
         previousContext
           ? `Previous coding conversation:\n\n${previousContext}`
           : "",
@@ -263,9 +287,7 @@ export default function CodePage() {
       const failedItem: CodeConversationItem = {
         id: createId(),
         prompt: requestedPrompt,
-        output: `## Code Generation Failed
-
-${errorMessage}`,
+        output: `Code generation failed: ${errorMessage}`,
         language: requestedLanguage,
         createdAt: Date.now(),
       };
@@ -290,7 +312,12 @@ ${errorMessage}`,
   }
 
   function clearConversation() {
-    if (loading || conversation.length === 0) return;
+    if (
+      loading ||
+      conversation.length === 0
+    ) {
+      return;
+    }
 
     const shouldClear = window.confirm(
       "Do you want to clear this code conversation?"
@@ -302,7 +329,9 @@ ${errorMessage}`,
     setPrompt("");
   }
 
-  function selectHistoryItem(item: CodeHistoryItem) {
+  function selectHistoryItem(
+    item: CodeHistoryItem
+  ) {
     if (loading) return;
 
     const conversationItem: CodeConversationItem = {
@@ -334,7 +363,9 @@ ${errorMessage}`,
   }
 
   function clearHistory() {
-    if (loading || history.length === 0) return;
+    if (loading || history.length === 0) {
+      return;
+    }
 
     const shouldClear = window.confirm(
       "Do you want to clear all code history?"
@@ -345,7 +376,7 @@ ${errorMessage}`,
     setHistory([]);
   }
 
-    return (
+  return (
     <main className="min-h-screen bg-black px-4 py-8 text-white sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <section className="mb-8">
@@ -356,8 +387,9 @@ ${errorMessage}`,
               </h1>
 
               <p className="mt-2 max-w-3xl text-zinc-400">
-                Generate code, continue previous work, request improvements
-                and fix bugs through an ongoing coding conversation.
+                Generate code, continue previous work,
+                request improvements and fix bugs through
+                an ongoing coding conversation.
               </p>
             </div>
 
@@ -385,9 +417,13 @@ ${errorMessage}`,
               <div className="mt-7">
                 <CodeToolbar
                   output={latestConversation.output}
-                  selectedLanguage={latestConversation.language}
+                  selectedLanguage={
+                    latestConversation.language
+                  }
                   loading={loading}
-                  onRegenerate={regenerateLatestCode}
+                  onRegenerate={
+                    regenerateLatestCode
+                  }
                   onClear={clearConversation}
                 />
               </div>
@@ -397,10 +433,14 @@ ${errorMessage}`,
           <div className="xl:sticky xl:top-6">
             <CodePrompt
               prompt={prompt}
-              selectedLanguage={selectedLanguage}
+              selectedLanguage={
+                selectedLanguage
+              }
               loading={loading}
               onPromptChange={setPrompt}
-              onLanguageChange={setSelectedLanguage}
+              onLanguageChange={
+                setSelectedLanguage
+              }
               onGenerate={() => {
                 void generateCode();
               }}
@@ -413,15 +453,30 @@ ${errorMessage}`,
                 </p>
 
                 <p className="mt-2 text-sm leading-6 text-zinc-400">
-                  Ask OMNI AI to modify the latest code, add a feature,
-                  explain a section, improve performance or fix an error.
+                  Ask OMNI AI to modify the latest code,
+                  add a feature, explain a section,
+                  improve performance or fix an error.
                 </p>
 
                 <div className="mt-3 space-y-2 text-sm text-zinc-500">
-                  <p>• Add form validation to the previous code.</p>
-                  <p>• Fix the errors and return the complete updated file.</p>
-                  <p>• Convert this code to TypeScript.</p>
-                  <p>• Make the previous UI mobile responsive.</p>
+                  <p>
+                    • Add form validation to the
+                    previous code.
+                  </p>
+
+                  <p>
+                    • Fix the errors and return the
+                    complete updated file.
+                  </p>
+
+                  <p>
+                    • Convert this code to TypeScript.
+                  </p>
+
+                  <p>
+                    • Make the previous UI mobile
+                    responsive.
+                  </p>
                 </div>
               </div>
             )}
