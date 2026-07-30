@@ -1,6 +1,12 @@
 "use client";
 
-import { auth, googleProvider } from "@/lib/firebase";
+import { auth, googleProvider, db } from "@/lib/firebase";
+import {
+  doc,
+  getDoc,
+  serverTimestamp,
+  setDoc,
+} from "firebase/firestore";
 import {
   createUserWithEmailAndPassword,
   signInWithPopup,
@@ -57,7 +63,14 @@ export default function SignupPage() {
       await updateProfile(userCredential.user, {
         displayName: name.trim(),
       });
-
+await setDoc(doc(db, "users", userCredential.user.uid), {
+  uid: userCredential.user.uid,
+  name: name.trim(),
+  email: email.trim(),
+  plan: "free",
+  createdAt: serverTimestamp(),
+  updatedAt: serverTimestamp(),
+});
       router.push("/dashboard");
     } catch (error: unknown) {
       console.error("Signup error:", error);
@@ -93,21 +106,50 @@ export default function SignupPage() {
   }
 
   async function handleGoogleSignup() {
-    setErrorMessage("");
-    setLoading(true);
+  setErrorMessage("");
+  setLoading(true);
 
-    try {
-      await signInWithPopup(auth, googleProvider);
-      router.push("/dashboard");
-    } catch (error) {
-      console.error("Google signup error:", error);
-      setErrorMessage(
-        "Google signup was not completed. Please try again."
-      );
-    } finally {
-      setLoading(false);
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+
+    const userRef = doc(db, "users", result.user.uid);
+    const userSnapshot = await getDoc(userRef);
+
+    if (!userSnapshot.exists()) {
+      await setDoc(userRef, {
+        uid: result.user.uid,
+        name: result.user.displayName || "",
+        email: result.user.email || "",
+        plan: "free",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
     }
+
+    router.push("/dashboard");
+  } catch (error: unknown) {
+    console.error("Google signup error:", error);
+
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error
+    ) {
+      const firebaseError = error as {
+        code: string;
+        message?: string;
+      };
+
+      setErrorMessage(
+        `${firebaseError.code}\n${firebaseError.message ?? ""}`
+      );
+    } else {
+      setErrorMessage("Google signup failed.");
+    }
+  } finally {
+    setLoading(false);
   }
+}
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-black p-4 text-white">

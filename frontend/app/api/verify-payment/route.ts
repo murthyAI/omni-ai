@@ -1,4 +1,6 @@
 import crypto from "crypto";
+import { FieldValue } from "firebase-admin/firestore";
+import { adminAuth, adminDb } from "@/lib/firebase-admin";
 
 type VerificationBody = {
   razorpay_order_id?: string;
@@ -14,12 +16,38 @@ export async function POST(request: Request) {
     if (!keySecret) {
       return Response.json(
         {
+          success: false,
           error:
             "Razorpay verification credentials are not configured.",
         },
         { status: 500 }
       );
     }
+
+    const authorizationHeader =
+      request.headers.get("authorization");
+
+    if (
+      !authorizationHeader ||
+      !authorizationHeader.startsWith("Bearer ")
+    ) {
+      return Response.json(
+        {
+          success: false,
+          error: "Authentication token is missing.",
+        },
+        { status: 401 }
+      );
+    }
+
+    const idToken = authorizationHeader
+      .replace("Bearer ", "")
+      .trim();
+
+    const decodedToken =
+      await adminAuth.verifyIdToken(idToken);
+
+    const uid = decodedToken.uid;
 
     const body =
       (await request.json()) as VerificationBody;
@@ -39,6 +67,7 @@ export async function POST(request: Request) {
     ) {
       return Response.json(
         {
+          success: false,
           error:
             "Required payment verification details are missing.",
         },
@@ -48,7 +77,10 @@ export async function POST(request: Request) {
 
     if (plan !== "pro" && plan !== "pro-plus") {
       return Response.json(
-        { error: "Invalid payment plan." },
+        {
+          success: false,
+          error: "Invalid payment plan.",
+        },
         { status: 400 }
       );
     }
@@ -86,9 +118,26 @@ export async function POST(request: Request) {
       );
     }
 
+    await adminDb
+      .collection("users")
+      .doc(uid)
+      .set(
+        {
+          uid,
+          email: decodedToken.email || "",
+          plan,
+          paymentId,
+          orderId,
+          paymentStatus: "paid",
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+
     return Response.json({
       success: true,
-      message: "Payment verified successfully.",
+      message:
+        "Payment verified and plan activated successfully.",
       paymentId,
       orderId,
       plan,
@@ -102,7 +151,8 @@ export async function POST(request: Request) {
     return Response.json(
       {
         success: false,
-        error: "Unable to verify the payment.",
+        error:
+          "Unable to verify the payment or activate the plan.",
       },
       { status: 500 }
     );

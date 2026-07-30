@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Script from "next/script";
 import { useState } from "react";
+import { auth } from "@/lib/firebase";
 
 type PaidPlanId = "pro" | "pro-plus";
 
@@ -169,6 +170,13 @@ export default function PricingCards() {
     setProcessingPlan(plan);
 
     try {
+      const currentUser = auth.currentUser;
+
+if (!currentUser) {
+  throw new Error("Please login before purchasing a plan.");
+}
+
+const idToken = await currentUser.getIdToken();
       const orderResponse = await fetch(
         "/api/create-order",
         {
@@ -211,6 +219,7 @@ export default function PricingCards() {
                 headers: {
                   "Content-Type":
                     "application/json",
+                     Authorization: `Bearer ${idToken}`,
                 },
                 body: JSON.stringify({
                   ...paymentResponse,
