@@ -1,14 +1,48 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { auth, db } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
 
 export default function SubscriptionCard() {
+  const [plan, setPlan] = useState("Free");
+
+useEffect(() => {
+  const loadPlan = async () => {
+    const user = auth.currentUser;
+
+    if (!user) return;
+
+    try {
+      const docRef = doc(db, "users", user.uid);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+
+        if (data.plan) {
+          setPlan(
+            data.plan === "pro-plus"
+              ? "Pro+"
+              : data.plan.charAt(0).toUpperCase() +
+                  data.plan.slice(1)
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error loading subscription plan:", error);
+    }
+  };
+
+  loadPlan();
+}, []);
   return (
     <section className="rounded-2xl border border-cyan-800 bg-gradient-to-br from-cyan-950 via-zinc-950 to-black p-6">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
         <div className="max-w-2xl">
           <span className="inline-flex rounded-full border border-cyan-600 bg-cyan-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-cyan-300">
-            Coming Soon
+             Current Plan: {plan}
           </span>
 
           <h2 className="mt-4 text-3xl font-bold text-white">
@@ -64,7 +98,7 @@ export default function SubscriptionCard() {
             disabled
             className="cursor-not-allowed rounded-xl border border-zinc-700 bg-zinc-900 px-6 py-3 font-semibold text-zinc-500"
           >
-            Pro Coming Soon
+             Current Plan: {plan}
           </button>
         </div>
       </div>
