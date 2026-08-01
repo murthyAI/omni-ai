@@ -5,7 +5,6 @@ import ChatMessages from "@/components/chat/ChatMessages";
 import ChatSidebar from "@/components/chat/ChatSidebar";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { auth } from "@/lib/firebase";
 
 type ChatMessage = {
   role: "user" | "ai";
@@ -344,13 +343,6 @@ export default function ChatPage() {
     const currentConversation = conversations.find(
       (conversation) => conversation.id === currentConversationId
     );
-    const currentUser = auth.currentUser;
-
-if (!currentUser) {
-  throw new Error("Please login to continue.");
-}
-
-const idToken = await currentUser.getIdToken();
 
     const currentFile = selectedFile;
     const currentPreview = selectedPreview;
@@ -406,7 +398,6 @@ const idToken = await currentUser.getIdToken();
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-           Authorization: `Bearer ${idToken}`,
         },
         body: JSON.stringify({
           message: userMessage,
